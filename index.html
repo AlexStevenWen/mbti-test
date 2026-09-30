@@ -1,0 +1,950 @@
+import { useState, useEffect, useRef } from "react"
+import { Sparkles, ArrowLeft, RefreshCw, Share2, Heart, Zap, Compass, Check } from "lucide-react"
+
+type Dimension = "EI" | "SN" | "TF" | "JP"
+type Side = "E" | "I" | "S" | "N" | "T" | "F" | "J" | "P"
+
+interface Question {
+  id: number
+  dimension: Dimension
+  text: string
+  optionA: { label: string; side: Side; desc: string }
+  optionB: { label: string; side: Side; desc: string }
+}
+
+interface TypeInfo {
+  code: string
+  nickname: string
+  emoji: string
+  color: string
+  accent: string
+  intro: string
+  description: string
+  traits: string[]
+  strengths: string[]
+  weaknesses: string[]
+  careers: string[]
+  famous: string[]
+}
+
+const questions: Question[] = [
+  {
+    id: 1,
+    dimension: "EI",
+    text: "週末的理想行程是？",
+    optionA: { label: "和朋友探索新店，認識新的人", side: "E", desc: "越熱鬧，越來勁" },
+    optionB: { label: "在家泡咖啡、聽音樂，享受獨處", side: "I", desc: "安靜，是充電的方式" },
+  },
+  {
+    id: 2,
+    dimension: "EI",
+    text: "在派對裡，你通常是？",
+    optionA: { label: "主動搭話，讓氣氛活絡起來", side: "E", desc: "我來破冰吧" },
+    optionB: { label: "和一兩個人深聊，或安靜觀察", side: "I", desc: "少而深的連結" },
+  },
+  {
+    id: 3,
+    dimension: "EI",
+    text: "遇到煩惱時，你會先？",
+    optionA: { label: "找人聊聊，在對話中釐清", side: "E", desc: "說出來就清晰了" },
+    optionB: { label: "自己先想透，再決定要不要說", side: "I", desc: "內在先整理一遍" },
+  },
+  {
+    id: 4,
+    dimension: "EI",
+    text: "什麼時候你最有能量？",
+    optionA: { label: "團隊腦力激盪，越聊越有想法", side: "E", desc: "人越多靈感越多" },
+    optionB: { label: "一段不被打擾的專注時光", side: "I", desc: "深度工作才是真生產" },
+  },
+  {
+    id: 5,
+    dimension: "EI",
+    text: "臨時收到朋友邀約，你會？",
+    optionA: { label: "好啊走啊！先去了再說", side: "E", desc: "人生就是要衝一波" },
+    optionB: { label: "先看一下行程，心裡猶豫三秒", side: "I", desc: "我需要一點心理準備" },
+  },
+  {
+    id: 6,
+    dimension: "SN",
+    text: "你更信任什麼？",
+    optionA: { label: "眼前可驗證的事實和細節", side: "S", desc: "有憑有據才安心" },
+    optionB: { label: "直覺與背後可能的含義", side: "N", desc: "我看到的是可能性" },
+  },
+  {
+    id: 7,
+    dimension: "SN",
+    text: "學習新東西時，你喜歡？",
+    optionA: { label: "從具體例子、操作開始", side: "S", desc: "一步一步來" },
+    optionB: { label: "先看大圖，理解背後原理", side: "N", desc: "先懂為什麼" },
+  },
+  {
+    id: 8,
+    dimension: "SN",
+    text: "談到未來夢想，你會描述？",
+    optionA: { label: "很具體的步驟和時間表", side: "S", desc: "務實可執行" },
+    optionB: { label: "一個畫面感很強的願景", side: "N", desc: "像電影場景一樣" },
+  },
+  {
+    id: 9,
+    dimension: "SN",
+    text: "和朋友聊天，你更常聊？",
+    optionA: { label: "最近發生了什麼、好用的東西", side: "S", desc: "生活感滿滿" },
+    optionB: { label: "想法、理論、如果…會怎樣", side: "N", desc: "腦洞大開" },
+  },
+  {
+    id: 10,
+    dimension: "SN",
+    text: "你覺得自己更像是？",
+    optionA: { label: "務實的實踐家", side: "S", desc: "先把事情做好" },
+    optionB: { label: "天馬行空的空想家", side: "N", desc: "先把世界想一遍" },
+  },
+  {
+    id: 11,
+    dimension: "TF",
+    text: "朋友失戀來找你，你會？",
+    optionA: { label: "幫他分析狀況，給具體建議", side: "T", desc: "先解決問題" },
+    optionB: { label: "先給他一個擁抱，陪他一起難過", side: "F", desc: "感受比道理重要" },
+  },
+  {
+    id: 12,
+    dimension: "TF",
+    text: "做決定時，你更看重？",
+    optionA: { label: "邏輯是否一致、是否公平", side: "T", desc: "對事不對人" },
+    optionB: { label: "每個人的感受、是否和諧", side: "F", desc: "人比事重要一點" },
+  },
+  {
+    id: 13,
+    dimension: "TF",
+    text: "被批評的時候，你更在意？",
+    optionA: { label: "他的論點有沒有道理", side: "T", desc: "內容對不對" },
+    optionB: { label: "他的語氣是否尊重人", side: "F", desc: "怎麼說也很重要" },
+  },
+  {
+    id: 14,
+    dimension: "TF",
+    text: "團隊有衝突時，你傾向？",
+    optionA: { label: "把問題攤開講清楚，就算有點刺耳", side: "T", desc: "長痛不如短痛" },
+    optionB: { label: "先顧及情緒，找大家都能接受的說法", side: "F", desc: "和諧是生產力" },
+  },
+  {
+    id: 15,
+    dimension: "TF",
+    text: "你更欣賞哪種人？",
+    optionA: { label: "冷靜、果斷、有原則", side: "T", desc: "清晰又可靠" },
+    optionB: { label: "溫暖、同理、善解人意", side: "F", desc: "讓人想靠近" },
+  },
+  {
+    id: 16,
+    dimension: "JP",
+    text: "看看你的書桌？",
+    optionA: { label: "整齊分類，每樣東西都有家", side: "J", desc: "秩序讓我安心" },
+    optionB: { label: "看起來有點亂，但我知道在哪", side: "P", desc: "亂中有序" },
+  },
+  {
+    id: 17,
+    dimension: "JP",
+    text: "出國旅行，你會怎麼準備？",
+    optionA: { label: "做好攻略、訂好所有行程", side: "J", desc: "掌控感滿分" },
+    optionB: { label: "訂好機票就好，到了再說", side: "P", desc: "驚喜才是旅行" },
+  },
+  {
+    id: 18,
+    dimension: "JP",
+    text: "面對截止期限，你是？",
+    optionA: { label: "提早完成，討厭最後一刻趕工", side: "J", desc: "完成比完美早到" },
+    optionB: { label: "壓力來了靈感才來，最後衝刺", side: "P", desc: "Deadline 是第一生產力" },
+  },
+  {
+    id: 19,
+    dimension: "JP",
+    text: "你更享受哪種感覺？",
+    optionA: { label: "把事情做個了結，打勾的爽感", side: "J", desc: "清單清空的快樂" },
+    optionB: { label: "保持開放，隨時有新選項", side: "P", desc: "不急著下定論" },
+  },
+  {
+    id: 20,
+    dimension: "JP",
+    text: "當計劃被打亂時？",
+    optionA: { label: "有點焦躁，想趕快回到正軌", side: "J", desc: "計劃就是安全感" },
+    optionB: { label: "沒差，隨機應變也是一種樂趣", side: "P", desc: "變才是常態" },
+  },
+]
+
+const typesData: Record<string, TypeInfo> = {
+  INFP: {
+    code: "INFP",
+    nickname: "調停者",
+    emoji: "🌿",
+    color: "from-violet-400 to-fuchsia-400",
+    accent: "#a78bfa",
+    intro: "溫柔的理想主義者，心裡住著一整座圖書館。",
+    description: "你看起來安靜，但內心戲超豐富。你對世界有自己的價值濾鏡，不輕易妥協。別人覺得你在發呆，其實你在幫這個世界寫更好的結局。共感是你的超能力，也是你需要學會保護自己的地方。",
+    traits: ["理想主義", "高度共感", "內向但深刻", "價值驅動"],
+    strengths: ["富有創造力", "真誠善良", "忠於內心", "洞察人心"],
+    weaknesses: ["容易內耗", "過度自責", "不擅拒絕", "現實感偶爾斷線"],
+    careers: ["作家 / 編劇", "心理師", "插畫家", "品牌企劃"],
+    famous: ["村上春樹", "露娜·洛夫古德", "威廉·莎士比亞"],
+  },
+  INFJ: {
+    code: "INFJ",
+    nickname: "提倡者",
+    emoji: "🔮",
+    color: "from-indigo-400 to-violet-400",
+    accent: "#818cf8",
+    intro: "安靜的預言家，總比別人早一步看到結局。",
+    description: "你是人群中的老靈魂。直覺準到自己都怕，但你很少大聲說出來。你想讓世界變好一點，而且是真的會去做的那種人。請記得，你不需要拯救所有人，先照顧好自己的能量。",
+    traits: ["洞察深刻", "理想與務實並存", "安靜堅定", "富有同理"],
+    strengths: ["有遠見", "強大同理心", "有組織力", "啟發他人"],
+    weaknesses: ["過度完美主義", "容易燃燒殆盡", "不說出需求"],
+    careers: ["諮商師", "作家", "HR / 組織發展", "非營利組織"],
+    famous: ["宮崎駿", "德蕾莎修女", "榮格"],
+  },
+  ENFP: {
+    code: "ENFP",
+    nickname: "競選者",
+    emoji: "✨",
+    color: "from-amber-300 to-orange-400",
+    accent: "#fbbf24",
+    intro: "行走的煙火，點亮每個房間。",
+    description: "你的腦袋永遠有十個分頁開著。好奇心是你的燃料，人是你的靈感來源。你討厭被定義，因為你明天又會長出新的興趣。記得把靈感寫下來，不然它真的會跑掉。",
+    traits: ["熱情洋溢", "充滿好奇", "即興創意", "人群磁鐵"],
+    strengths: ["感染力強", "創意無限", "共情能力", "適應力高"],
+    weaknesses: ["容易分心", "三分鐘熱度", "討厭細節"],
+    careers: ["企劃 / 行銷", "主持人", "創業家", "內容創作者"],
+    famous: ["羅賓·威廉斯", "蜘蛛人", "華特·迪士尼"],
+  },
+  ENFJ: {
+    code: "ENFJ",
+    nickname: "主人公",
+    emoji: "🌟",
+    color: "from-emerald-300 to-teal-400",
+    accent: "#34d399",
+    intro: "天生的主角，但更喜歡讓別人發光。",
+    description: "你走到哪，團隊就成形到哪。你記得每個人的名字和故事，而且是真心在乎。你給建議從不敷衍，但有時候會忘記自己也需要被照顧。你的領導力是溫柔的，卻很有力量。",
+    traits: ["溫暖領導", "善於鼓舞", "責任感強", "人際敏銳"],
+    strengths: ["領導力", "同理心強", "溝通高手", "有使命感"],
+    weaknesses: ["過度承擔", "在意他人評價", "忽略自己"],
+    careers: ["教師 / 講師", "品牌主理人", "社群經理", "公關"],
+    famous: ["歐巴馬", "歐普拉", "哈利·波特中的鄧不利多"],
+  },
+  INTP: {
+    code: "INTP",
+    nickname: "邏輯學家",
+    emoji: "🧩",
+    color: "from-sky-300 to-blue-400",
+    accent: "#7dd3fc",
+    intro: "大腦是實驗室，世界是你的模型。",
+    description: "你喜歡拆解東西，不只是物品，還有想法。安靜不是害羞，是你在後台跑程式。你說話可能很直接，但沒有惡意，只是邏輯先於禮貌。你其實很可愛，只要話題對了可以聊三小時。",
+    traits: ["理性分析", "好奇愛問", "獨立思考", "低調幽默"],
+    strengths: ["邏輯清晰", "學習快", "客觀公正", "創意解法"],
+    weaknesses: ["不善表達情感", "拖延細節", "過度思考"],
+    careers: ["工程師", "研究員", "數據分析", "哲學 / 策略"],
+    famous: ["愛因斯坦", "比爾·蓋茲", "宮崎英高"],
+  },
+  INTJ: {
+    code: "INTJ",
+    nickname: "建築師",
+    emoji: "♟️",
+    color: "from-slate-300 to-zinc-400",
+    accent: "#a1a1aa",
+    intro: "心裡有一張藍圖，正在慢慢蓋成現實。",
+    description: "你看起來冷靜，其實心裡已經推演到十年後。你喜歡效率、討厭廢話，做事有自己的系統。你不是不合群，只是不想把時間花在沒意義的社交上。你的溫柔藏在行動裡。",
+    traits: ["戰略思維", "獨立果斷", "高標準", "長期主義"],
+    strengths: ["規劃能力強", "意志堅定", "獨立", "解決複雜問題"],
+    weaknesses: ["顯得疏離", "完美主義", "不擅安慰人"],
+    careers: ["產品經理", "建築師", "策略顧問", "創辦人"],
+    famous: ["伊隆·馬斯克", "諾蘭", "珍·奧斯汀"],
+  },
+  ENTP: {
+    code: "ENTP",
+    nickname: "辯論家",
+    emoji: "⚡️",
+    color: "from-yellow-300 to-lime-400",
+    accent: "#fde047",
+    intro: "靈感永動機，專門拆解無聊。",
+    description: "你最怕無聊，所以總在找新挑戰。辯論對你來說不是吵架，是腦力有氧。你點子超多，但需要一個幫你收尾的夥伴。世界因為有你，變得比較不無聊。",
+    traits: ["機智敏捷", "愛挑戰", "點子王", "不按牌理"],
+    strengths: ["口才好", "創新思維", "適應快", "不怕衝突"],
+    weaknesses: ["容易厭倦", "不愛收尾", "有時太直"],
+    careers: ["創業家", "行銷企劃", "律師", "脫口秀"],
+    famous: ["死侍", "湯姆·漢克斯", "蘇格拉底"],
+  },
+  ENTJ: {
+    code: "ENTJ",
+    nickname: "指揮官",
+    emoji: "🚀",
+    color: "from-red-400 to-orange-500",
+    accent: "#fb7185",
+    intro: "效率是美德，目標是用來超越的。",
+    description: "你天生會帶隊，也敢做決定。你看到混亂就想整理，看到低效就想優化。你可能有點兇，但團隊都知道有你在，事情一定會成。記得偶爾把盔甲放下來。",
+    traits: ["果斷領導", "目標導向", "效率至上", "自信直接"],
+    strengths: ["決策快", "領導力強", "戰略眼光", "執行力"],
+    weaknesses: ["控制欲", "急躁", "忽略情緒"],
+    careers: ["CEO / 總監", "顧問", "投資人", "專案領導"],
+    famous: ["賈伯斯", "娜塔莉·波曼", "高登·拉姆齊"],
+  },
+  ISFP: {
+    code: "ISFP",
+    nickname: "探險家",
+    emoji: "🎨",
+    color: "from-pink-300 to-rose-400",
+    accent: "#f9a8d4",
+    intro: "安靜的美學家，用生活創作。",
+    description: "你不愛說大道理，但你的選擇本身就是品味。你對美很敏感，對人很溫柔。你活在當下，享受此刻的光、聲音、質地。你不需要很多觀眾，你的生活本身就很美。",
+    traits: ["溫柔隨性", "美感敏銳", "活在當下", "低調真誠"],
+    strengths: ["有美感", "體貼", "靈活", "忠於自己"],
+    weaknesses: ["逃避衝突", "容易自卑", "不擅規劃"],
+    careers: ["設計師", "攝影師", "花藝 / 選物", "音樂人"],
+    famous: ["奧黛麗·赫本", "鮑伯·狄倫", "宮崎葵"],
+  },
+  ISFJ: {
+    code: "ISFJ",
+    nickname: "守衛者",
+    emoji: "🫶",
+    color: "from-teal-300 to-cyan-400",
+    accent: "#5eead4",
+    intro: "溫柔的守護者，記得所有重要的細節。",
+    description: "你是那個會記得朋友忌口、默默把事情做好的人。你不張揚，但沒有你很多事會散掉。你給的安全感不是說出來的，是做出來的。請記得，你的好也值得被看見。",
+    traits: ["體貼可靠", "細節控", "傳統溫暖", "默默付出"],
+    strengths: ["可靠", "耐心", "觀察細膩", "責任感"],
+    weaknesses: ["不敢拒絕", "過度自責", "抗拒改變"],
+    careers: ["護理 / 教育", "行政", "客戶成功", "人資"],
+    famous: ["貝永絲", "美國隊長", "德蕾莎修女"],
+  },
+  ISTJ: {
+    code: "ISTJ",
+    nickname: "物流師",
+    emoji: "📦",
+    color: "from-zinc-400 to-neutral-500",
+    accent: "#a3a3a3",
+    intro: "說到做到，值得託付的靠山。",
+    description: "你可能是朋友群裡最可靠的人。答應的事一定做到，細節從不馬虎。你不喜歡驚喜，喜歡按部就班。但你幽默起來其實很冷面笑匠，大家都很依賴你。",
+    traits: ["務實可靠", "有條理", "重承諾", "低調實幹"],
+    strengths: ["責任感強", "邏輯清楚", "執行力", "忠誠"],
+    weaknesses: ["固執", "不擅變通", "情感表達少"],
+    careers: ["會計 / 法務", "專案管理", "公務 / 行政", "工程師"],
+    famous: ["華倫·巴菲特", "赫敏·格蘭傑", "安格拉·梅克爾"],
+  },
+  ISTP: {
+    code: "ISTP",
+    nickname: "鑑賞家",
+    emoji: "🔧",
+    color: "from-orange-300 to-amber-400",
+    accent: "#fdba74",
+    intro: "安靜的實幹家，動手就知道。",
+    description: "你話不多，但手很巧。你喜歡搞懂東西怎麼運作，拆了再裝回去。冒險對你來說不是衝動，是精準計算後的行動。你給人一種很酷的鬆弛感。",
+    traits: ["冷靜務實", "動手能力強", "冒險精神", "獨立"],
+    strengths: ["解決問題快", "冷靜", "實用主義", "適應力"],
+    weaknesses: ["不善承諾", "情感保留", "容易無聊"],
+    careers: ["工程師 / 技師", "運動員", "攝影", "飛行員"],
+    famous: ["湯姆·克魯斯", "喬丹", "克林·伊斯威特"],
+  },
+  ESFP: {
+    code: "ESFP",
+    nickname: "表演者",
+    emoji: "🎤",
+    color: "from-fuchsia-400 to-pink-400",
+    accent: "#e879f9",
+    intro: "天生的舞台，走到哪都是主場。",
+    description: "你讓每個聚會都變好玩。你反應快、很會帶氣氛，而且是真心享受當下。你對朋友很大方，對生活很熱情。你可能有點衝動，但你的快樂是會傳染的。",
+    traits: ["熱情外向", "活在當下", "幽默", "樂觀"],
+    strengths: ["人際魅力", "臨場反應", "樂觀", "實用"],
+    weaknesses: ["衝動購物", "不愛長遠規劃", "敏感"],
+    careers: ["表演 / 主持", "公關", "旅遊 / 餐飲", "銷售"],
+    famous: ["瑪麗蓮·夢露", "威爾·史密斯", "泰勒絲"],
+  },
+  ESFJ: {
+    code: "ESFJ",
+    nickname: "執政官",
+    emoji: "🧡",
+    color: "from-amber-300 to-yellow-400",
+    accent: "#fcd34d",
+    intro: "溫暖的主辦人，讓每個人都感到被照顧。",
+    description: "你是聚會的靈魂，也是細節的守護者。你記得誰不吃香菜、誰最近低潮。你喜歡把大家聚在一起，看到大家開心你就開心。你值得同樣溫暖的回報。",
+    traits: ["熱心助人", "有條理", "重視和諧", "社交高手"],
+    strengths: ["體貼", "組織力", "忠誠", "務實"],
+    weaknesses: ["在意評價", "難以拒絕", "抗拒衝突"],
+    careers: ["教師", "護理", "活動企劃", "客戶關係"],
+    famous: ["泰勒絲", "珍妮佛·洛佩茲", "比爾·柯林頓"],
+  },
+  ESTP: {
+    code: "ESTP",
+    nickname: "企業家",
+    emoji: "🏁",
+    color: "from-lime-400 to-green-400",
+    accent: "#a3e635",
+    intro: "行動派，想到就去做。",
+    description: "你討厭空談，喜歡直接上場。你膽大心細，危機時反而最冷靜。朋友找你幫忙，你二話不說就到。你的世界沒有「以後再說」，只有「現在就來」。",
+    traits: ["果斷行動", "冒險", "務實", "臨場強"],
+    strengths: ["行動力", "說服力", "適應快", "膽識"],
+    weaknesses: ["衝動", "不愛規則", "耐心不足"],
+    careers: ["業務 / 創業", "運動 / 教練", "急診 / 消防", "行銷"],
+    famous: ["麥可·喬丹", "瑪丹娜", "艾迪·墨菲"],
+  },
+  ESTJ: {
+    code: "ESTJ",
+    nickname: "總經理",
+    emoji: "📐",
+    color: "from-blue-400 to-indigo-500",
+    accent: "#60a5fa",
+    intro: "秩序的建立者，效率的代言人。",
+    description: "你做事有邏輯、有原則，而且說到做到。你喜歡把混亂變有序，把想法變成果。你可能看起來嚴肅，但對自己人在乎的事，你會扛到底。",
+    traits: ["務實果斷", "有組織", "重傳統", "責任感強"],
+    strengths: ["領導力", "執行力", "可靠", "邏輯清楚"],
+    weaknesses: ["固執", "控制欲", "不擅安撫"],
+    careers: ["管理 / 行政", "法官 / 軍警", "財務", "營運"],
+    famous: ["蜜雪兒·歐巴馬", "法蘭克·辛納屈", "艾瑪·華森的麥教授"],
+  },
+}
+
+export default function App() {
+  const [stage, setStage] = useState<"intro" | "quiz" | "result">("intro")
+  const [currentIdx, setCurrentIdx] = useState(0)
+  const [answers, setAnswers] = useState<(Side | null)[]>(Array(20).fill(null))
+  const [selected, setSelected] = useState<"A" | "B" | null>(null)
+  const [animating, setAnimating] = useState(false)
+  const [showConfetti, setShowConfetti] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const currentQ = questions[currentIdx]
+  const progress = ((currentIdx + 1) / questions.length) * 100
+  const answeredCount = answers.filter(Boolean).length
+
+  const handleSelect = (opt: "A" | "B") => {
+    if (animating) return
+    setSelected(opt)
+    const side = opt === "A" ? currentQ.optionA.side : currentQ.optionB.side
+    const newAnswers = [...answers]
+    newAnswers[currentIdx] = side
+    setAnswers(newAnswers)
+
+    setAnimating(true)
+    setTimeout(() => {
+      if (currentIdx < questions.length - 1) {
+        setCurrentIdx((c) => c + 1)
+        setSelected(null)
+        setAnimating(false)
+      } else {
+        setStage("result")
+        setShowConfetti(true)
+        setTimeout(() => setShowConfetti(false), 4000)
+      }
+    }, 550)
+  }
+
+  const handlePrev = () => {
+    if (currentIdx > 0) {
+      setCurrentIdx((c) => c - 1)
+      setSelected(answers[currentIdx - 1] === questions[currentIdx - 1].optionA.side ? "A" : answers[currentIdx - 1] === questions[currentIdx - 1].optionB.side ? "B" : null)
+    }
+  }
+
+  const calculateResult = () => {
+    const counts: Record<Side, number> = { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 }
+    answers.forEach((ans) => {
+      if (ans) counts[ans]++
+    })
+    const e = counts.E, i = counts.I, s = counts.S, n = counts.N, t = counts.T, f = counts.F, j = counts.J, p = counts.P
+    const type = `${e >= i ? "E" : "I"}${s >= n ? "S" : "N"}${t >= f ? "T" : "F"}${j >= p ? "J" : "P"}`
+    return {
+      type,
+      counts,
+      percents: {
+        EI: { left: e, right: i, leftPct: (e / 5) * 100 },
+        SN: { left: s, right: n, leftPct: (s / 5) * 100 },
+        TF: { left: t, right: f, leftPct: (t / 5) * 100 },
+        JP: { left: j, right: p, leftPct: (j / 5) * 100 },
+      },
+    }
+  }
+
+  const result = stage === "result" ? calculateResult() : null
+  const typeInfo = result ? typesData[result.type] : null
+
+  const handleRestart = () => {
+    setAnswers(Array(20).fill(null))
+    setCurrentIdx(0)
+    setSelected(null)
+    setStage("intro")
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  const handleShare = async () => {
+    if (!typeInfo || !result) return
+    const text = `我在 MBTI 性格探索測驗得到 ${result.type} - ${typeInfo.nickname} ${typeInfo.emoji}\n${typeInfo.intro}\n快來測測你是哪一型！`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "MBTI 測驗", text })
+      } else {
+        await navigator.clipboard.writeText(text)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      }
+    } catch {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  useEffect(() => {
+    const link = document.createElement("link")
+    link.href = "https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap"
+    link.rel = "stylesheet"
+    document.head.appendChild(link)
+    return () => { document.head.removeChild(link) }
+  }, [])
+
+  return (
+    <div
+      ref={containerRef}
+      className="min-h-screen bg-[#08080a] text-white selection:bg-white/20 overflow-x-hidden relative"
+      style={{ fontFamily: "'Noto Sans TC', 'Space Grotesk', system-ui, sans-serif" }}
+    >
+      {/* Background */}
+      <div className="pointer-events-none fixed inset-0">
+        <div className="absolute inset-0 bg-[#08080a]" />
+        <div className="absolute -top-[40%] left-1/2 -translate-x-1/2 w-[120%] h-[80%] bg-[radial-gradient(ellipse_at_center,_rgba(120,119,198,0.15),transparent_60%)]" />
+        <div className="absolute top-[10%] left-[10%] w-[420px] h-[420px] rounded-full bg-violet-500/20 blur-[120px]" />
+        <div className="absolute bottom-[10%] right-[10%] w-[520px] h-[520px] rounded-full bg-fuchsia-500/15 blur-[130px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-cyan-500/10 blur-[150px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:72px_72px] [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_80%)]" />
+      </div>
+
+      {/* Progress */}
+      <div className="fixed top-0 left-0 right-0 z-50 h-[2px] bg-white/5">
+        <div
+          className="h-full bg-gradient-to-r from-violet-400 via-fuchsia-400 to-cyan-300 transition-all duration-700 ease-out"
+          style={{ width: stage === "intro" ? "0%" : stage === "quiz" ? `${progress}%` : "100%" }}
+        />
+      </div>
+
+      {/* Header */}
+      <header className="relative z-20 sticky top-0 backdrop-blur-2xl bg-[#08080a]/60 border-b border-white/[0.06]">
+        <div className="mx-auto max-w-[1200px] px-6 md:px-10 h-[64px] flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-white text-black grid place-items-center font-bold text-[13px] tracking-tight">M</div>
+            <span className="text-[14px] tracking-[0.14em] font-medium text-white/90">MBTI 性格探索測驗</span>
+            <span className="hidden md:inline-flex ml-3 px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.08] text-[10px] tracking-widest text-white/50">BETA · 20 Q</span>
+          </div>
+          {stage === "quiz" && (
+            <div className="flex items-center gap-3 text-[12px] text-white/40">
+              <span className="hidden md:inline">已作答</span>
+              <span className="font-mono text-white/80">{answeredCount} / 20</span>
+              <div className="w-[72px] h-[3px] rounded-full bg-white/10 overflow-hidden">
+                <div className="h-full bg-white/60 transition-all" style={{ width: `${(answeredCount / 20) * 100}%` }} />
+              </div>
+            </div>
+          )}
+          {stage === "result" && typeInfo && (
+            <div className="hidden md:flex items-center gap-2 text-[11px] tracking-widest text-white/40">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              已完成分析
+            </div>
+          )}
+        </div>
+      </header>
+
+      <main className="relative z-10 mx-auto max-w-[1200px] px-6 md:px-10 py-10 md:py-16">
+        {stage === "intro" && (
+          <div className="grid md:grid-cols-[1.1fr_0.9fr] gap-10 md:gap-16 items-center min-h-[70vh]">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.06] border border-white/[0.08] backdrop-blur text-[11px] tracking-widest text-white/60 mb-6">
+                <Sparkles className="w-3.5 h-3.5 text-violet-300" />
+                靈感來自 Linear / Apple 的極簡主義
+              </div>
+              <h1 className="text-[44px] md:text-[64px] leading-[0.95] font-[700] tracking-[-0.04em]">
+                <span className="block text-white">認識自己，</span>
+                <span className="block bg-gradient-to-r from-violet-300 via-fuchsia-300 to-cyan-200 bg-clip-text text-transparent">比認識世界更酷。</span>
+              </h1>
+              <p className="mt-6 text-[16px] md:text-[18px] leading-relaxed text-white/60 max-w-[520px]">
+                20 道直覺題，3 分鐘，帶你看見自己做決定的底層邏輯。沒有標準答案，只有更像你的答案。
+              </p>
+
+              <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-[560px]">
+                {[
+                  { k: "20 題", v: "科學維度拆解" },
+                  { k: "零壓力", v: "直覺選就對了" },
+                  { k: "專屬解析", v: "16 型完整報告" },
+                ].map((item) => (
+                  <div key={item.k} className="rounded-2xl bg-white/[0.04] border border-white/[0.06] p-4 backdrop-blur-xl">
+                    <div className="text-[13px] font-medium text-white/90 tracking-wide">{item.k}</div>
+                    <div className="text-[12px] text-white/45 mt-1">{item.v}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-10 flex items-center gap-4">
+                <button
+                  onClick={() => setStage("quiz")}
+                  className="group h-[48px] px-8 rounded-full bg-white text-black text-[14px] font-medium tracking-wide hover:bg-white/90 transition flex items-center gap-2"
+                >
+                  開始探索
+                  <span className="w-6 h-6 rounded-full bg-black text-white grid place-items-center group-hover:translate-x-0.5 transition-transform">→</span>
+                </button>
+                <span className="text-[12px] text-white/30">約 3 分鐘 · 隨時可重來</span>
+              </div>
+            </div>
+
+            <div className="relative">
+              <div className="absolute -inset-10 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 blur-[40px] rounded-[32px]" />
+              <div className="relative rounded-[28px] bg-white/[0.06] border border-white/[0.08] backdrop-blur-2xl p-6 md:p-8 shadow-[0_20px_80px_rgba(0,0,0,0.5)]">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-red-400/80" />
+                    <div className="w-2 h-2 rounded-full bg-yellow-400/80" />
+                    <div className="w-2 h-2 rounded-full bg-green-400/80" />
+                  </div>
+                  <span className="text-[11px] tracking-widest text-white/30">PREVIEW · RESULT CARD</span>
+                </div>
+
+                <div className="space-y-5">
+                  <div className="rounded-2xl bg-[#0f0f12] border border-white/[0.06] p-5">
+                    <div className="text-[11px] tracking-[0.2em] text-white/30">YOUR TYPE</div>
+                    <div className="mt-2 flex items-baseline gap-3">
+                      <span className="text-[42px] font-bold tracking-tight bg-gradient-to-r from-violet-300 to-fuchsia-300 bg-clip-text text-transparent">INFP</span>
+                      <span className="text-[14px] text-white/60">調停者 · 🌿</span>
+                    </div>
+                    <div className="mt-3 h-[4px] rounded-full bg-white/10 overflow-hidden flex gap-1">
+                      <div className="h-full w-[68%] bg-violet-400 rounded-full" />
+                      <div className="h-full w-[22%] bg-fuchsia-400 rounded-full" />
+                      <div className="h-full w-[10%] bg-cyan-300 rounded-full" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { l: "內向 I", r: "73%", bar: 73 },
+                      { l: "直覺 N", r: "81%", bar: 81 },
+                    ].map((d) => (
+                      <div key={d.l} className="rounded-xl bg-white/[0.03] border border-white/[0.05] p-3">
+                        <div className="flex justify-between text-[11px] text-white/40">
+                          <span>{d.l}</span>
+                          <span className="text-white/70">{d.r}</span>
+                        </div>
+                        <div className="mt-2 h-[3px] bg-white/10 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-violet-400 to-fuchsia-400" style={{ width: `${d.bar}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {["理想主義", "高度共感", "內向但深刻", "價值驅動"].map((t) => (
+                      <span key={t} className="px-2.5 py-1 rounded-full bg-white/[0.06] border border-white/[0.08] text-[11px] text-white/60">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-6 flex items-center gap-2 text-[11px] text-white/30">
+                  <div className="w-5 h-5 rounded-full bg-white/10 grid place-items-center">
+                    <Compass className="w-3 h-3" />
+                  </div>
+                  已為 12,847 人找到他們的類型
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {stage === "quiz" && (
+          <div className="max-w-[820px] mx-auto">
+            <div className="flex items-center justify-between mb-8">
+              <button onClick={handlePrev} disabled={currentIdx === 0} className="inline-flex items-center gap-2 text-[13px] text-white/40 hover:text-white/80 disabled:opacity-20 transition">
+                <ArrowLeft className="w-4 h-4" /> 上一題
+              </button>
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 rounded-full bg-white/[0.06] border border-white/[0.07] text-[11px] tracking-widest text-white/60">
+                  {currentQ.dimension === "EI" ? "能量來源" : currentQ.dimension === "SN" ? "感知方式" : currentQ.dimension === "TF" ? "決策偏好" : "生活節奏"} · {currentQ.dimension}
+                </span>
+                <span className="text-[12px] font-mono text-white/30">{String(currentIdx + 1).padStart(2, "0")} / 20</span>
+              </div>
+            </div>
+
+            <div className={`transition-all duration-500 ${animating ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"}`}>
+              <h2 className="text-[28px] md:text-[40px] leading-[1.15] font-[600] tracking-[-0.02em] text-white max-w-[700px]">{currentQ.text}</h2>
+              <p className="mt-3 text-[14px] text-white/40">憑直覺選，不用過度思考。沒有對錯，只有更像你。</p>
+
+              <div className="mt-10 grid md:grid-cols-2 gap-4">
+                {[
+                  { key: "A" as const, data: currentQ.optionA },
+                  { key: "B" as const, data: currentQ.optionB },
+                ].map(({ key, data }) => {
+                  const isSelected = selected === key
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => handleSelect(key)}
+                      className={`group text-left relative rounded-[24px] border backdrop-blur-xl p-6 md:p-7 transition-all duration-300 overflow-hidden
+                        ${isSelected ? "bg-white text-black border-white shadow-[0_12px_40px_rgba(255,255,255,0.18)] scale-[0.99]" : "bg-white/[0.05] border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12] hover:scale-[1.01]"}
+                      `}
+                    >
+                      {isSelected && <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 pointer-events-none" />}
+                      <div className="flex items-start justify-between">
+                        <div className={`w-9 h-9 rounded-full grid place-items-center text-[12px] font-bold tracking-widest border ${isSelected ? "bg-black text-white border-black" : "bg-white/[0.06] border-white/[0.08] text-white/60"}`}>
+                          {key}
+                        </div>
+                        <div className={`w-6 h-6 rounded-full border grid place-items-center transition ${isSelected ? "bg-black border-black" : "border-white/15"}`}>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+                        </div>
+                      </div>
+                      <div className={`mt-6 text-[18px] leading-snug font-medium tracking-[-0.01em] ${isSelected ? "text-black" : "text-white"}`}>{data.label}</div>
+                      <div className={`mt-2 text-[13px] ${isSelected ? "text-black/60" : "text-white/40"}`}>{data.desc}</div>
+                      <div className={`mt-6 inline-flex px-2.5 py-1 rounded-full text-[11px] tracking-widest border ${isSelected ? "bg-black/5 border-black/10 text-black/60" : "bg-white/[0.04] border-white/[0.06] text-white/40"}`}>
+                        {data.side}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="mt-8 flex justify-center">
+                <div className="flex items-center gap-1.5">
+                  {questions.map((_, i) => (
+                    <div
+                      key={i}
+                      className={`h-1 rounded-full transition-all duration-500 ${i === currentIdx ? "w-8 bg-white" : answers[i] ? "w-1.5 bg-white/50" : "w-1.5 bg-white/15"}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {stage === "result" && result && typeInfo && (
+          <div className="max-w-[1100px] mx-auto">
+            {/* Confetti */}
+            {showConfetti && (
+              <div className="pointer-events-none fixed inset-0 z-[60] overflow-hidden">
+                {Array.from({ length: 32 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute w-2 h-6 rounded-full animate-[fall_3s_ease-in_forwards]"
+                    style={{
+                      left: `${Math.random() * 100}%`,
+                      top: `-20px`,
+                      background: `hsl(${260 + Math.random() * 80}, 90%, 70%)`,
+                      transform: `rotate(${Math.random() * 360}deg)`,
+                      animationDelay: `${Math.random() * 0.8}s`,
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+
+            <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-8 items-start">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.06] border border-white/[0.08] text-[11px] tracking-widest text-white/60 mb-6">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  分析完成 · 20 題全部作答
+                </div>
+
+                <div className="relative">
+                  <div className="absolute -inset-8 bg-gradient-to-br from-violet-500/20 via-fuchsia-500/15 to-cyan-500/20 blur-[50px] rounded-[40px]" />
+                  <div className="relative">
+                    <div className="flex items-baseline gap-4 flex-wrap">
+                      <h1 className={`text-[72px] md:text-[96px] leading-none font-[800] tracking-[-0.06em] bg-gradient-to-br ${typeInfo.color} bg-clip-text text-transparent`}>
+                        {typeInfo.code}
+                      </h1>
+                      <span className="text-[28px]">{typeInfo.emoji}</span>
+                    </div>
+                    <div className="mt-2 flex items-center gap-3">
+                      <span className="text-[22px] md:text-[26px] font-medium tracking-tight text-white">{typeInfo.nickname}</span>
+                      <span className="h-4 w-px bg-white/15" />
+                      <span className="text-[14px] text-white/50">{typeInfo.intro}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="mt-8 text-[16px] leading-relaxed text-white/70 max-w-[640px]">{typeInfo.description}</p>
+
+                <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="rounded-[20px] bg-white/[0.05] border border-white/[0.07] backdrop-blur-xl p-5">
+                    <div className="flex items-center gap-2 text-[11px] tracking-widest text-white/40 mb-4">
+                      <Zap className="w-3.5 h-3.5" /> 維度光譜
+                    </div>
+                    <div className="space-y-5">
+                      {[
+                        { label: "能量", left: "外向 E", right: "內向 I", data: result.percents.EI, key: "EI" },
+                        { label: "感知", left: "實感 S", right: "直覺 N", data: result.percents.SN, key: "SN" },
+                        { label: "決策", left: "思考 T", right: "情感 F", data: result.percents.TF, key: "TF" },
+                        { label: "節奏", left: "判斷 J", right: "感知 P", data: result.percents.JP, key: "JP" },
+                      ].map((d) => {
+                        const isLeftDominant = d.data.left >= d.data.right
+                        const pct = isLeftDominant ? d.data.leftPct : 100 - d.data.leftPct
+                        return (
+                          <div key={d.key}>
+                            <div className="flex justify-between text-[12px]">
+                              <span className={`${isLeftDominant ? "text-white" : "text-white/35"}`}>{d.left}</span>
+                              <span className="text-[11px] tracking-widest text-white/30">{d.label}</span>
+                              <span className={`${!isLeftDominant ? "text-white" : "text-white/35"}`}>{d.right}</span>
+                            </div>
+                            <div className="mt-2 h-[6px] rounded-full bg-white/[0.08] overflow-hidden flex p-[2px]">
+                              <div className="h-full rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-400 transition-all duration-1000" style={{ width: `${pct}%` }} />
+                            </div>
+                            <div className="mt-1 flex justify-between text-[10px] font-mono text-white/30">
+                              <span>{d.data.left}/5</span>
+                              <span>{d.data.right}/5</span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="rounded-[20px] bg-white/[0.05] border border-white/[0.07] backdrop-blur-xl p-5">
+                      <div className="flex items-center gap-2 text-[11px] tracking-widest text-white/40 mb-3">
+                        <Heart className="w-3.5 h-3.5" /> 核心特質
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {typeInfo.traits.map((t) => (
+                          <span key={t} className="px-3 py-1.5 rounded-full bg-white text-black text-[12px] font-medium">
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="rounded-[20px] bg-white/[0.04] border border-white/[0.06] p-4">
+                        <div className="text-[11px] tracking-widest text-emerald-300/80 mb-2">優勢</div>
+                        <ul className="space-y-1.5">
+                          {typeInfo.strengths.map((s) => (
+                            <li key={s} className="text-[12px] text-white/70 flex gap-1.5">
+                              <span className="text-emerald-300">•</span> {s}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="rounded-[20px] bg-white/[0.04] border border-white/[0.06] p-4">
+                        <div className="text-[11px] tracking-widest text-amber-300/80 mb-2">小盲點</div>
+                        <ul className="space-y-1.5">
+                          {typeInfo.weaknesses.map((s) => (
+                            <li key={s} className="text-[12px] text-white/60 flex gap-1.5">
+                              <span className="text-amber-300">•</span> {s}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 grid md:grid-cols-2 gap-4">
+                  <div className="rounded-[20px] bg-[#121216] border border-white/[0.06] p-5">
+                    <div className="text-[11px] tracking-widest text-white/40 mb-3">適合的舞台</div>
+                    <div className="flex flex-wrap gap-2">
+                      {typeInfo.careers.map((c) => (
+                        <span key={c} className="px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.08] text-[12px] text-white/70">
+                          {c}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-[20px] bg-[#121216] border border-white/[0.06] p-5">
+                    <div className="text-[11px] tracking-widest text-white/40 mb-3">同類型名人</div>
+                    <div className="flex flex-wrap gap-2">
+                      {typeInfo.famous.map((c) => (
+                        <span key={c} className="px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.08] text-[12px] text-white/60">
+                          {c}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <button
+                    onClick={handleShare}
+                    className="h-[44px] px-6 rounded-full bg-white text-black text-[14px] font-medium flex items-center gap-2 hover:bg-white/90 transition"
+                  >
+                    <Share2 className="w-4 h-4" /> {copied ? "已複製！" : "分享結果"}
+                  </button>
+                  <button
+                    onClick={handleRestart}
+                    className="h-[44px] px-6 rounded-full bg-white/[0.06] border border-white/[0.08] text-white/80 text-[14px] font-medium flex items-center gap-2 hover:bg-white/[0.1] transition"
+                  >
+                    <RefreshCw className="w-4 h-4" /> 再測一次
+                  </button>
+                </div>
+              </div>
+
+              <div className="lg:sticky lg:top-[88px] space-y-4">
+                <div className="rounded-[24px] bg-white/[0.06] border border-white/[0.08] backdrop-blur-2xl p-6 overflow-hidden relative">
+                  <div className="absolute -top-20 -right-20 w-64 h-64 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 blur-[30px] rounded-full" />
+                  <div className="relative">
+                    <div className="text-[11px] tracking-[0.2em] text-white/30">YOUR RESULT CARD</div>
+                    <div className="mt-4 flex items-center gap-4">
+                      <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${typeInfo.color} grid place-items-center text-black font-bold text-[20px]`}>{typeInfo.code.slice(0, 2)}</div>
+                      <div>
+                        <div className="text-[20px] font-semibold tracking-tight text-white">{typeInfo.code} · {typeInfo.nickname}</div>
+                        <div className="text-[12px] text-white/50 mt-0.5">{typeInfo.intro}</div>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 grid grid-cols-4 gap-2">
+                      {[
+                        { k: "E/I", v: result.percents.EI.left >= result.percents.EI.right ? "E" : "I", pct: Math.max(result.percents.EI.leftPct, 100 - result.percents.EI.leftPct) },
+                        { k: "S/N", v: result.percents.SN.left >= result.percents.SN.right ? "S" : "N", pct: Math.max(result.percents.SN.leftPct, 100 - result.percents.SN.leftPct) },
+                        { k: "T/F", v: result.percents.TF.left >= result.percents.TF.right ? "T" : "F", pct: Math.max(result.percents.TF.leftPct, 100 - result.percents.TF.leftPct) },
+                        { k: "J/P", v: result.percents.JP.left >= result.percents.JP.right ? "J" : "P", pct: Math.max(result.percents.JP.leftPct, 100 - result.percents.JP.leftPct) },
+                      ].map((d) => (
+                        <div key={d.k} className="rounded-xl bg-[#0f0f12] border border-white/[0.06] p-3 text-center">
+                          <div className="text-[10px] tracking-widest text-white/30">{d.k}</div>
+                          <div className="text-[18px] font-bold text-white mt-1">{d.v}</div>
+                          <div className="text-[10px] font-mono text-white/40">{d.pct.toFixed(0)}%</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-6 rounded-xl bg-[#0f0f12] border border-white/[0.06] p-4">
+                      <div className="text-[11px] text-white/40 mb-2">一句話認識你</div>
+                      <div className="text-[13px] leading-relaxed text-white/70">「{typeInfo.description.slice(0, 60)}…」</div>
+                    </div>
+
+                    <div className="mt-4 text-[10px] leading-relaxed text-white/25">
+                      此測驗基於 MBTI 理論改編，僅供自我探索與娛樂參考。你的類型是起點，不是標籤。
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[20px] bg-[#121216] border border-white/[0.06] p-5">
+                  <div className="text-[12px] font-medium text-white/80 mb-3">所有 16 型</div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {Object.keys(typesData).map((code) => (
+                      <div
+                        key={code}
+                        className={`rounded-lg border px-2 py-2 text-center text-[11px] font-mono transition ${code === result.type ? "bg-white text-black border-white" : "bg-white/[0.03] border-white/[0.06] text-white/40"}`}
+                      >
+                        {code}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+
+      <footer className="relative z-10 border-t border-white/[0.06] mt-10">
+        <div className="mx-auto max-w-[1200px] px-6 md:px-10 h-[56px] flex items-center justify-between text-[11px] text-white/25 tracking-wide">
+          <span>© 2025 MBTI 性格探索 · 為好奇心而做</span>
+          <span className="hidden md:inline">Made with Linear-inspired minimalism · Glass + Neon</span>
+        </div>
+      </footer>
+
+      <style>{`
+        @keyframes fall {
+          0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+        }
+      `}</style>
+    </div>
+  )
+}
